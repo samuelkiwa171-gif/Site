@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gestion Contacts</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#f2f2f2;
+  padding:20px;
+}
+
+.container{
+  max-width:600px;
+  margin:auto;
+}
+
+.box{
+  background:white;
+  padding:20px;
+  margin-bottom:20px;
+  border-radius:8px;
+  box-shadow:0 0 8px rgba(0,0,0,0.1);
+}
+
+h2{
+  margin-top:0;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0 10px 0;
+  border:1px solid #ccc;
+  border-radius:5px;
+}
+
+button{
+  padding:8px 15px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.primary{
+  background:#1976d2;
+  color:white;
+}
+
+.danger{
+  background:red;
+  color:white;
+}
+
+.warning{
+  background:orange;
+  color:white;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:10px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="box">
+<h2>Informations Contacts</h2>
+
+<input type="text" id="nom" placeholder="Votre nom">
+<input type="text" id="telephone" placeholder="Votre numéro de téléphone">
+<input type="email" id="email" placeholder="Votre e-mail">
+
+<button class="primary" onclick="ajouterContact()">Soumettre</button>
+</div>
+
+<div class="box">
+<h2>Recherche Contacts</h2>
+
+<input type="text" id="searchInput" placeholder="Taper ici pour rechercher un contact">
+<button class="primary" onclick="rechercher()">Rechercher</button>
+
+<br><br>
+
+<table>
+<thead>
+<tr>
+<th>Nom</th>
+<th>Téléphone</th>
+<th>E-mail</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="liste"></tbody>
+</table>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCyw7aREJwCvDeLQ3lK4h415LHZ8akX2-o",
+  authDomain: "informations-contacts-95fa7.firebaseapp.com",
+  projectId: "informations-contacts-95fa7",
+  storageBucket: "informations-contacts-95fa7.firebasestorage.app",
+  messagingSenderId: "368353985995",
+  appId: "1:368353985995:web:7eebc1b69c46c5008ca24e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let contacts = [];
+
+window.ajouterContact = async function(){
+
+  let nom=document.getElementById("nom").value;
+  let telephone=document.getElementById("telephone").value;
+  let email=document.getElementById("email").value;
+
+  if(!nom || !telephone || !email){
+    alert("Veuillez remplir tous les champs");
+    return;
+  }
+
+  await addDoc(collection(db,"contacts"),{nom,telephone,email});
+
+  document.getElementById("nom").value="";
+  document.getElementById("telephone").value="";
+  document.getElementById("email").value="";
+}
+
+onSnapshot(collection(db,"contacts"), snapshot=>{
+  contacts=[];
+  snapshot.forEach(docSnap=>{
+    contacts.push({...docSnap.data(), id:docSnap.id});
+  });
+  afficher(contacts);
+});
+
+function afficher(data){
+  let html="";
+  data.forEach(c=>{
+    html+=`
+    <tr>
+      <td>${c.nom}</td>
+      <td>${c.telephone}</td>
+      <td>${c.email}</td>
+      <td>
+        <button class="warning" onclick="modifier('${c.id}')">Modifier</button>
+        <button class="danger" onclick="supprimer('${c.id}')">Supprimer</button>
+      </td>
+    </tr>
+    `;
+  });
+  document.getElementById("liste").innerHTML=html;
+}
+
+window.rechercher=function(){
+  let mot=document.getElementById("searchInput").value.toLowerCase();
+
+  let resultat=contacts.filter(c =>
+    c.nom.toLowerCase().includes(mot) ||
+    c.telephone.toLowerCase().includes(mot) ||
+    c.email.toLowerCase().includes(mot)
+  );
+
+  afficher(resultat);
+}
+
+window.supprimer=async function(id){
+  await deleteDoc(doc(db,"contacts",id));
+}
+
+window.modifier=async function(id){
+  let nouveauNom=prompt("Nouveau nom:");
+  let nouveauTel=prompt("Nouveau téléphone:");
+  let nouveauEmail=prompt("Nouvel email:");
+
+  if(nouveauNom && nouveauTel && nouveauEmail){
+    await updateDoc(doc(db,"contacts",id),{
+      nom:nouveauNom,
+      telephone:nouveauTel,
+      email:nouveauEmail
+    });
+  }
+}
+
+</script>
+
+</body>
+</html>
